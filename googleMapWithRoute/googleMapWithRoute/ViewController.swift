@@ -12,7 +12,8 @@ class ViewController: UIViewController {
 
     var region:CLCircularRegion!
     @IBOutlet var mapView: GMSMapView!
-    
+     var distance: UILabel!
+     var duration: UILabel!
     
     var searchController: UISearchController?
     override func viewDidLoad() {
@@ -21,10 +22,21 @@ class ViewController: UIViewController {
         
         self.enableLocation()
         self.addAutoCompleteSearchBar()
+        self.addViews()
         
         
         
+    }
+    
+    func addViews()
+    {
+        let subView = UIView(frame: CGRect(x: 0, y: 135.0, width: 350.0, height: 60.0))
+        self.distance = UILabel(frame: CGRect(x: 0, y: 0, width: 250, height: 30))
+        self.duration = UILabel(frame: CGRect(x: 0, y: 30, width: 250, height: 30))
         
+        subView.addSubview(distance)
+        subView.addSubview(duration)
+        self.view.addSubview(subView)
     }
     
     func enableLocation()
@@ -99,6 +111,7 @@ extension ViewController: GMSAutocompleteResultsViewControllerDelegate {
     self.destinationLocation = place.coordinate
     self.mapView.clear()
     self.drawRoute()
+    self.getDistance()
     self.addMarker(place: place)
   }
 
@@ -123,7 +136,7 @@ extension ViewController: GMSAutocompleteResultsViewControllerDelegate {
                 do{
                     let jsondata = try JSON(data: resp as! Data)
                     let routes = jsondata["routes"].arrayValue
-                     print("\n\nRoutes :",routes)
+//                     print("\n\nRoutes :",routes)
                     for route in routes {
                         let overview_polyline = route["overview_polyline"].dictionary
                         let points = overview_polyline?["points"]?.string
@@ -136,6 +149,41 @@ extension ViewController: GMSAutocompleteResultsViewControllerDelegate {
                     
                     let camera = GMSCameraPosition(target: CLLocationCoordinate2D(latitude: self.currentLocation.latitude, longitude: self.currentLocation.longitude), zoom: 12)
                     self.mapView.animate(to: camera)
+                }
+                catch
+                {
+                   
+                }
+            }
+            
+            
+        }
+    }
+    
+    func getDistance()
+    {
+        let sourceLocation = "\(self.currentLocation.latitude),\(self.currentLocation.longitude)"
+        let destinationLocation = "\(self.destinationLocation.latitude),\(self.destinationLocation.longitude)"
+        let URL = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=\(sourceLocation)&destinations=\(destinationLocation)&key=AIzaSyDYMPVy4xArN4D1UWN-k3mdN2c1AUta6vI"
+        
+        APIManager.sharedInstance.getJsonResponse(withEndPoint: URL) { (resp, isSuccess, err) in
+            
+            
+            if(isSuccess)
+            {
+                do{
+                    let jsondata = try JSON(data: resp as! Data)
+                    let distances = jsondata["rows"][0]["elements"]
+
+                    DispatchQueue.main.async {
+                       
+                        
+                        
+                        self.distance.text = "Distance :\(distances[0]["distance"]["text"].string ?? "")"
+                        self.duration.text = "Time to reach :\(distances[0]["duration"]["text"].string ?? "")"
+                        
+                    }
+                    
                 }
                 catch
                 {
